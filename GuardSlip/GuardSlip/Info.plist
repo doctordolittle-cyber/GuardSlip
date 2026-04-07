@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>NSCameraUsageDescription</key>
+    <string>GuardSlip needs camera access to scan receipts and barcodes.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>GuardSlip needs photo library access to import receipt images.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>GuardSlip needs microphone access for camera functionality.</string>
+</dict>
+</plist>
