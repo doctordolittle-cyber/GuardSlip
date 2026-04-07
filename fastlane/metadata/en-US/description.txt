@@ -1,0 +1,18 @@
+GuardSlip helps you keep track of all your product warranties in one place. Add items by scanning receipts or entering details manually, and the app will remind you before any warranty expires. Organize purchases by category, store receipt photos, and see at a glance which warranties are active, expiring soon, or already expired.
+
+Each warranty entry stores the product name, brand, store, purchase and expiry dates, price, serial number, and receipt images. A visual timeline shows upcoming expirations so you can act before it's too late. Smart notifications alert you days or weeks in advance, giving you enough time to file a claim if needed.
+
+Whether it's electronics, appliances, furniture, or clothing, GuardSlip keeps your warranty information organized and always at hand. No more digging through drawers for paper receipts or missing a claim deadline.
+
+Features:
+
+Add warranties with receipt photo scanning and automatic date recognition
+Track product name, brand, store, price, serial number, and notes
+Visual status indicators for active, expiring soon, and expired warranties
+Timeline view with upcoming expiration schedule
+Smart reminders with customizable notification offsets
+Organize items by category: electronics, appliances, auto, furniture, and more
+Full-screen receipt photo viewer
+Filter and sort your warranty collection
+Dark mode support with system, light, and dark appearance options
+All data stored locally on your device

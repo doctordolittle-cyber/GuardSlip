@@ -1,0 +1,142 @@
+# ============================================================
+# Codemagic CI/CD — Сборка iOS + загрузка метаданных через Fastlane
+# ============================================================
+#
+# Этот файл кладётся в КОРЕНЬ проекта (рядом с .xcodeproj)
+#
+# Что делает этот workflow:
+#   1. Устанавливает CocoaPods (если есть Podfile)
+#   2. Автоинкремент Build Number из TestFlight
+#   3. Подписывает приложение (code signing)
+#   4. Собирает .ipa для App Store
+#   5. Устанавливает Fastlane и загружает метаданные
+#   6. Публикует .ipa в TestFlight
+#   7. Шлёт email с результатом
+#
+# Поддержка NotificationsTarget (Notification Service Extension):
+#   Codemagic автоматически подхватывает provisioning profiles для расширений
+#   (bundle_id.*). Убедись, что в Apple Developer Portal создан App ID для
+#   yalehbondaryom.knifesharplogapp.NotificationsTarget и профиль добавлен
+#   в Codemagic Code signing identities.
+#
+# ЧТО НУЖНО ЗАМЕНИТЬ (ищи ← ЗАМЕНИ):
+#   - app_store_connect integration name
+#   - bundle_identifier
+#   - XCODE_PROJECT
+#   - XCODE_SCHEME
+#   - APP_STORE_APP_ID
+#   - email получателя
+#
+# ============================================================
+
+workflows:
+  ios-release:
+    name: iOS Release - App Store
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+
+    # ──────────────────────────────────────────
+    # Интеграция с App Store Connect
+    # Настраивается в Codemagic: Settings → Integrations → App Store Connect
+    # ──────────────────────────────────────────
+    integrations:
+      app_store_connect: Vadim Bondar
+
+    # ──────────────────────────────────────────
+    # Окружение: подпись, переменные, версия Xcode
+    # ──────────────────────────────────────────
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        # Основной app + NotificationsTarget (extension) — Codemagic подхватит оба профиля
+        bundle_identifier: com.VadimBondar.GuardSlip
+      vars:
+        XCODE_PROJECT: "GuardSlip.xcodeproj"
+        XCODE_SCHEME: "GuardSlip"
+        APP_STORE_APP_ID: "6761755314"
+      xcode: 16.0                                   # Версия Xcode (можно поменять)
+
+    # ──────────────────────────────────────────
+    # Скрипты сборки (выполняются по порядку)
+    # ──────────────────────────────────────────
+    scripts:
+      # 1) CocoaPods — если есть Podfile, ставит зависимости
+      - name: Install CocoaPods dependencies
+        script: |
+          if [ -f "Podfile" ]; then
+            pod install
+          fi
+        working_directory: $CM_BUILD_DIR
+
+      # 2) Build Number — берёт последний из TestFlight и делает +1
+      # ЗАКОМЕНТОВАНО: використовуємо build number з Xcode вручну
+      # - name: Set build number
+      #   script: |
+      #     LATEST_BUILD_NUMBER=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APP_ID" || echo "0")
+      #     BUILD_NUMBER=$((LATEST_BUILD_NUMBER + 1))
+      #     cd $CM_BUILD_DIR
+      #     agvtool new-version -all $BUILD_NUMBER
+      #     echo "Build number set to: $BUILD_NUMBER"
+
+      # 3) Code Signing — подставляет provisioning profiles (включая NotificationsTarget)
+      - name: Set up code signing
+        script: |
+          xcode-project use-profiles --project "$XCODE_PROJECT" --archive-method app-store
+        working_directory: $CM_BUILD_DIR
+
+      # 4) Сборка .ipa
+      - name: Build ipa for App Store
+        script: |
+          xcodebuild -project "$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -sdk iphoneos \
+            -configuration Release \
+            -archivePath build/App.xcarchive \
+            clean archive \
+            CODE_SIGN_STYLE=Manual
+
+          xcodebuild -exportArchive \
+            -archivePath build/App.xcarchive \
+            -exportOptionsPlist "$HOME/export_options.plist" \
+            -exportPath build/ios/ipa
+        working_directory: $CM_BUILD_DIR
+        
+      - name: Install fastlane
+        script: |
+          gem install fastlane
+      
+      - name: Install bundle dependencies
+        script: |
+          cd $CM_BUILD_DIR
+          bundle install
+      
+      - name: Upload metadata and screenshots
+        script: |
+          cd $CM_BUILD_DIR
+          bundle exec fastlane upload_metadata
+        working_directory: $CM_BUILD_DIR
+
+      
+    # Артефакты — что сохраняется после сборки
+    # ──────────────────────────────────────────
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - build/*.xcarchive
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+
+    # ──────────────────────────────────────────
+    # Публикация — куда отправляется результат
+    # ──────────────────────────────────────────
+    publishing:
+      email:
+        recipients:
+          - vadimbondar@rentnowllc.com
+        notify:
+          success: true
+          failure: true
+
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true                  # Отправлять в TestFlight
+        submit_to_app_store: false                  # НЕ отправлять сразу в App Store (ручной релиз)
